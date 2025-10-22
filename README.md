@@ -1,4 +1,4 @@
-# FST
+# Dag
 
 A syntax tree factory built using functional principles.
 
