@@ -18,7 +18,7 @@ type TestNode struct {
 	children []*TestNode
 }
 
-func NewTestNode(name string) *dag.Builder[string, *TestNode] {
+func NewTestNode(name string) *dag.Graph[string, *TestNode] {
 	return dag.New(func(string) *TestNode {
 		return &TestNode{
 			name:     name,
@@ -31,7 +31,7 @@ func (t *TestNode) Append(node *TestNode) {
 	t.children = append(t.children, node)
 }
 
-// TestAppend calls [Builder.Append], to ensure that it correctly adds a new
+// TestAppend calls [Graph.Append], to ensure that it correctly adds a new
 // child to the parent node.
 func TestAppend(t *testing.T) {
 	var subject = NewTestNode("parent").Append(NewTestNode("child"))
@@ -45,15 +45,15 @@ func TestAppend(t *testing.T) {
 		},
 	}
 
-	if !reflect.DeepEqual(subject.Build("68yvwz"), expected) {
+	if !reflect.DeepEqual(subject.Evaluate("68yvwz"), expected) {
 		t.Fatal("result should be equal to expected output")
 	}
 }
 
-// TestLift calls [Builder.Lift], to ensure that dynamic nodes can be added
+// TestLift calls [Graph.Lift], to ensure that dynamic nodes can be added
 // using the provided build context.
 func TestLift(t *testing.T) {
-	var subject = NewTestNode("parent").Lift(func(str string) *dag.Builder[string, *TestNode] {
+	var subject = NewTestNode("parent").Lift(func(str string) *dag.Graph[string, *TestNode] {
 		return NewTestNode(str)
 	})
 
@@ -66,15 +66,15 @@ func TestLift(t *testing.T) {
 		},
 	}
 
-	if !reflect.DeepEqual(subject.Build("x8azmu"), expected) {
+	if !reflect.DeepEqual(subject.Evaluate("x8azmu"), expected) {
 		t.Fatal("result should be equal to expected output")
 	}
 }
 
-// TestScope calls [Scope], to ensure that it correctly adds a new
-// child to the parent node.
+// TestScope calls [Scope], to ensure that it correctly modifies the execution
+// context from the parent node.
 func TestScope(t *testing.T) {
-	var subject = dag.Scope(NewTestNode("parent").Lift(func(str string) *dag.Builder[string, *TestNode] {
+	var subject = dag.Scope(NewTestNode("parent").Lift(func(str string) *dag.Graph[string, *TestNode] {
 		return NewTestNode(str)
 	}), func(str string) string {
 		return str + "!"
@@ -89,7 +89,7 @@ func TestScope(t *testing.T) {
 		},
 	}
 
-	if !reflect.DeepEqual(subject.Build("3IjnT4"), expected) {
+	if !reflect.DeepEqual(subject.Evaluate("3IjnT4"), expected) {
 		t.Fatal("result should be equal to expected output")
 	}
 }
