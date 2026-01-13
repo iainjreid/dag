@@ -13,32 +13,32 @@ import (
 	"github.com/iainjreid/dag"
 )
 
-type TestNode struct {
+type TestVertex struct {
 	name     string
-	children []*TestNode
+	children []*TestVertex
 }
 
-func NewTestNode(name string) *dag.Graph[string, *TestNode] {
-	return dag.New(func(string) *TestNode {
-		return &TestNode{
+func NewTestVertex(name string) *dag.Graph[string, TestVertex] {
+	return dag.New(func(string) TestVertex {
+		return TestVertex{
 			name:     name,
 			children: nil,
 		}
 	})
 }
 
-func (t *TestNode) Append(node *TestNode) {
-	t.children = append(t.children, node)
+func (t TestVertex) Append(child TestVertex) {
+	t.children = append(t.children, &child)
 }
 
 // TestAppend calls [Graph.Append], to ensure that it correctly adds a new
-// child to the parent node.
+// child to the parent Vertex.
 func TestAppend(t *testing.T) {
-	var subject = NewTestNode("parent").Append(NewTestNode("child"))
+	var subject = NewTestVertex("parent").Append(NewTestVertex("child"))
 
-	var expected = &TestNode{
+	var expected = &TestVertex{
 		name: "parent",
-		children: []*TestNode{
+		children: []*TestVertex{
 			{
 				name: "child",
 			},
@@ -50,16 +50,16 @@ func TestAppend(t *testing.T) {
 	}
 }
 
-// TestLift calls [Graph.Lift], to ensure that dynamic nodes can be added
+// TestLift calls [Graph.Lift], to ensure that dynamic Vertexs can be added
 // using the provided build context.
 func TestLift(t *testing.T) {
-	var subject = NewTestNode("parent").Lift(func(str string) *dag.Graph[string, *TestNode] {
-		return NewTestNode(str)
+	var subject = NewTestVertex("parent").Lift(func(str string) *dag.Graph[string, TestVertex] {
+		return NewTestVertex(str)
 	})
 
-	var expected = &TestNode{
+	var expected = &TestVertex{
 		name: "parent",
-		children: []*TestNode{
+		children: []*TestVertex{
 			{
 				name: "x8azmu",
 			},
@@ -72,17 +72,17 @@ func TestLift(t *testing.T) {
 }
 
 // TestScope calls [Scope], to ensure that it correctly modifies the execution
-// context from the parent node.
+// context from the parent Vertex.
 func TestScope(t *testing.T) {
-	var subject = dag.Scope(NewTestNode("parent").Lift(func(str string) *dag.Graph[string, *TestNode] {
-		return NewTestNode(str)
+	var subject = dag.Scope(NewTestVertex("parent").Lift(func(str string) *dag.Graph[string, TestVertex] {
+		return NewTestVertex(str)
 	}), func(str string) string {
 		return str + "!"
 	})
 
-	var expected = &TestNode{
+	var expected = &TestVertex{
 		name: "parent",
-		children: []*TestNode{
+		children: []*TestVertex{
 			{
 				name: "3IjnT4!",
 			},
@@ -91,5 +91,13 @@ func TestScope(t *testing.T) {
 
 	if !reflect.DeepEqual(subject.Evaluate("3IjnT4"), expected) {
 		t.Fatal("result should be equal to expected output")
+	}
+}
+
+func BenchmarkAlloc(b *testing.B) {
+	var subject = NewTestVertex("parent").Append(NewTestVertex("child"))
+
+	for b.Loop() {
+		subject.Evaluate("3IjnT4")
 	}
 }
